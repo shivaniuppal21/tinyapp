@@ -1,19 +1,29 @@
 const express = require("express");
-const app = express();
 const PORT = 8080; // default port 8080
-
-//code for body-parser
+const morgan = require('morgan'); // HTTP request logger middleware for node.js
 const bodyParser = require("body-parser");
-app.use(bodyParser.urlencoded({extended: true}));
 
+
+const app = express();
 // tells express to use ejs as templating
 app.set("view engine", "ejs");
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(morgan('dev'));
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
-
+// generates a random id 
+function generateRandomString() {
+  var result           = '';
+  var char       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  var charlen = char.length;
+  for ( var i = 0; i < 6; i++ ) {
+     result += char.charAt(Math.floor(Math.random() * charlen));
+  }
+  return result;
+}
 
 app.get("/", (req, res) => {
     res.send("Hello!");
@@ -43,6 +53,15 @@ app.get("/urls", (req, res) => {
       res.redirect("/urls/"+shortUrl)
   });
 
+// DELETE /urls/:shortURL
+// POST /urls/:shortURL/delete
+// post requests are used to CHANGE/DELETE/UPDATE/CREATE data 
+app.post("/urls/:shortURL/delete", (req, res) => {
+  const urlToDelete = req.params.shortURL;
+  delete urlDatabase[urlToDelete];
+  res.redirect("/urls");
+})
+
   app.get("/u/:shortURL", (req, res) => {
     res.redirect( urlDatabase[req.params.shortURL])
   });
@@ -53,15 +72,6 @@ app.get("/urls", (req, res) => {
   });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);
+  console.log(`Tinyapp listening on port ${PORT}!`);
 });
 
-function generateRandomString() {
-    var result           = '';
-    var char       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charlen = char.length;
-    for ( var i = 0; i < 6; i++ ) {
-       result += char.charAt(Math.floor(Math.random() * charlen));
-    }
-    return result;
-}
