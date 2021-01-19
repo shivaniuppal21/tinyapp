@@ -1,9 +1,11 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+
 //code for body-parser
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({extended: true}));
+
 // tells express to use ejs as templating
 app.set("view engine", "ejs");
 
@@ -11,16 +13,6 @@ const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
-
-function generateRandomString() {
-    var result           = '';
-    var char       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charlen = char.length;
-    for ( var i = 0; i < 6; i++ ) {
-       result += char.charAt(Math.floor(Math.random() * charlen));
-    }
-    return result;
-}
 
 
 app.get("/", (req, res) => {
@@ -63,3 +55,13 @@ app.get("/urls", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
+
+function generateRandomString() {
+    var result           = '';
+    var char       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charlen = char.length;
+    for ( var i = 0; i < 6; i++ ) {
+       result += char.charAt(Math.floor(Math.random() * charlen));
+    }
+    return result;
+}
