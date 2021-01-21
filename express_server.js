@@ -3,21 +3,28 @@ const express = require("express");
 const PORT = 8080; // default port 8080
 const morgan = require('morgan'); // HTTP request logger middleware for node.js
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
-const { emailExists, passwordMatching, fetchUser } = require("./helpers/useHelpers")
+const cookieSession = require("cookie-session");
+const saltRounds = 10;
+const bcrypt = require('bcrypt');
 
+// helper functions
+const { emailExists, passwordMatching, fetchUser } = require("./helpers/useHelpers")
 const app = express();
 app.set("view engine", "ejs"); // tells express to use ejs as templating
+
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(morgan('dev'));
-app.use(cookieParser());
-
-
+app.use(
+  cookieSession({
+    name: 'session',
+    keys: ['key1', 'key2'],
+  })
+);
+// datatbases
 const urlDatabase = {
   b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
   i3BoGr: { longURL: "https://www.google.ca", userID: "user2RandomID" }
 };
-
 
 const users = { 
   "userRandomID": {
@@ -75,13 +82,13 @@ if(Object.keys(returnUrlObject).length === 0 ){
 }
 
 app.get("/urls", (req, res) => {
-  if(req.cookies["user_id"]){
-    const user_id = req.cookies["user_id"];
+  if(req.session["user_id"]){
+    const user_id = req.session["user_id"];
   let urls_uderid = getUrlDatabaseFromUserId(urlDatabase,user_id)
   const templateVars = { urls: urls_uderid, user: users[user_id]};
     res.render("urls_index", templateVars);
   }else{
-    const user_id = req.cookies["user_id"];
+    const user_id = req.session["user_id"];
     const templateVars = {  user: users[user_id]};
     res.render("redirect_login", templateVars);
   }
@@ -89,9 +96,9 @@ app.get("/urls", (req, res) => {
   });
   
   app.get("/urls/new", (req, res) => {
-    if (req.cookies["user_id"])
+    if (req.session["user_id"])
     {
-      const user_id = req.cookies["user_id"];
+      const user_id = req.session["user_id"];
       const templateVars = {  user: users[user_id]};
         res.render("urls_new",templateVars);
     }
@@ -106,7 +113,7 @@ app.get("/urls", (req, res) => {
   });
 
   app.get("/urls/:shortURL", (req, res) => {
-    const user_id = req.cookies["user_id"];
+    const user_id = req.session["user_id"];
     console.log(user_id)
     const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL ,user: users[user_id] };
     res.render("urls_show", templateVars);
@@ -114,9 +121,9 @@ app.get("/urls", (req, res) => {
 
  // will show a form to login
   app.get('/register', (req, res) => {
-    const user_id = req.cookies["user_id"];
+    const user_id = req.session["user_id"];
     const templateVars = {  user: users[user_id]};
-    res.render("register",templateVars)
+    res.render("register", templateVars)
   });
 
   app.post("/register", (req, res) => {
@@ -131,11 +138,10 @@ app.get("/urls", (req, res) => {
     }
     // We should check if email exists
     if (emailExists(users, incomingEmail)) {
-      console.log("email already exists")
       res.send('email already exists');
       return
     } else {
-      // If not, we want to add the new user data to the databaseish
+      // If not, we want to add the new user data to the database
       const newUser = {
         id: userid,
         email: incomingEmail,
@@ -156,13 +162,13 @@ app.get("/urls", (req, res) => {
       let longUrl = req.body.longURL
       let shortUrl = generateRandomString()
       urlDatabase[shortUrl] = {}
-      urlDatabase[shortUrl].userID = req.cookies["user_id"]
+      urlDatabase[shortUrl].userID = req.session["user_id"]
       urlDatabase[shortUrl].longURL = longUrl
       res.redirect("/urls/"+shortUrl)
   });
   // edit route to update a url resourse
 app.post("/urls/:shortURL", (req, res) => {
-  let userId = req.cookies["user_id"]
+  let userId = req.session["user_id"]
   let newlongUrl = req.body.longURL
   let shorturl = req.params.shortURL
   if(userId){
@@ -180,7 +186,7 @@ app.post("/urls/:shortURL", (req, res) => {
 })
 
 app.get("/login", (req, res) => {
-  const user_id = req.cookies["user_id"];
+  const user_id = req.session["user_id"];
   const templateVars = { urls: urlDatabase, user: users[user_id]};
     res.render("login", templateVars);
 
@@ -192,7 +198,7 @@ app.post("/login", (req, res) => {
   if(passwordMatching(users,req.body.email,req.body.password))
   {
     let user_obj = fetchUser(users,req.body.email)
-    res.cookie("user_id",user_obj.id)
+    req.session["user_id"] = user_obj.id
     console.log(user_obj.id)
     res.redirect("/urls");
   }
@@ -215,7 +221,7 @@ app.post("/logout", (req, res) => {
 // POST /urls/:shortURL/delete
 // post requests are used to CHANGE/DELETE/UPDATE/CREATE data 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  let userId = req.cookies["user_id"]
+  let userId = req.session["user_id"]
   let shorturl = req.params.shortURL
   if(userId){
     const userIdDatabase = getUrlDatabaseFromUserId(urlDatabase, userId)
