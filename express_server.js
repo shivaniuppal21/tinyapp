@@ -12,10 +12,13 @@ app.use(bodyParser.urlencoded({extended: false}));
 app.use(morgan('dev'));
 app.use(cookieParser());
 
+
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "user2RandomID" }
 };
+
+
 const users = { 
   "userRandomID": {
     id: "userRandomID", 
@@ -52,18 +55,50 @@ app.get("/hello", (req, res) => {
     res.send("<html><body>Hello <b>World</b></body></html>\n");
   });
 
+  // func takes urlDatabase and userId as its arguments
+  // it returns a subset of urldatabase which matches the userId 
+  // if no userid is matched return null
+const getUrlDatabaseFromUserId = function(urlDatabase, userId){
+  let returnUrlObject = {}
+  for(let urls in urlDatabase){
+    if(urlDatabase[urls].userID === userId){
+      returnUrlObject[urls] = {}
+      returnUrlObject[urls].longURL = urlDatabase[urls].longURL
+      returnUrlObject[urls].userID = urlDatabase[urls].userID
+    }
+  }
+if(Object.keys(returnUrlObject).length === 0 ){
+  return null
+}else{
+  return returnUrlObject
+}
+}
+
 app.get("/urls", (req, res) => {
-  const user_id = req.cookies["user_id"];
-  const templateVars = { urls: urlDatabase, user: users[user_id]};
+  if(req.cookies["user_id"]){
+    const user_id = req.cookies["user_id"];
+  let urls_uderid = getUrlDatabaseFromUserId(urlDatabase,user_id)
+  const templateVars = { urls: urls_uderid, user: users[user_id]};
     res.render("urls_index", templateVars);
+  }else{
+    const user_id = req.cookies["user_id"];
+    const templateVars = {  user: users[user_id]};
+    res.render("redirect_login", templateVars);
+  }
+  
   });
   
   app.get("/urls/new", (req, res) => {
-    const user_id = req.cookies["user_id"];
-  const templateVars = {  user: users[user_id]};
-    res.render("urls_new",templateVars);
+    if (req.cookies["user_id"])
+    {
+      const user_id = req.cookies["user_id"];
+      const templateVars = {  user: users[user_id]};
+        res.render("urls_new",templateVars);
+    }
+    else{
+      res.redirect("/login")
+    }
   });
-
 
   app.get("/u/:shortURL", (req, res) => {
     
@@ -73,7 +108,7 @@ app.get("/urls", (req, res) => {
   app.get("/urls/:shortURL", (req, res) => {
     const user_id = req.cookies["user_id"];
     console.log(user_id)
-    const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] ,user: users[user_id] };
+    const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL].longURL ,user: users[user_id] };
     res.render("urls_show", templateVars);
   });
 
@@ -108,30 +143,40 @@ app.get("/urls", (req, res) => {
       }
   
       users[userid] = newUser
-  
       // redirect them to home with cookie if everything was ok
-      res.cookie("user_id",userid)
+      //res.cookie("user_id",userid)
       // res.redirect('/')
-  
       // redirect them to login if everything was ok
       console.log(users)
       res.redirect('/urls')
     }
   })
   
-
   app.post("/urls", (req, res) => {
       let longUrl = req.body.longURL
       let shortUrl = generateRandomString()
-      urlDatabase[shortUrl] = longUrl
+      urlDatabase[shortUrl] = {}
+      urlDatabase[shortUrl].userID = req.cookies["user_id"]
+      urlDatabase[shortUrl].longURL = longUrl
       res.redirect("/urls/"+shortUrl)
   });
-  // route to update a url resourse
+  // edit route to update a url resourse
 app.post("/urls/:shortURL", (req, res) => {
+  let userId = req.cookies["user_id"]
   let newlongUrl = req.body.longURL
   let shorturl = req.params.shortURL
-  urlDatabase[shorturl] = newlongUrl
-  res.redirect("/urls");
+  if(userId){
+    const userIdDatabase = getUrlDatabaseFromUserId(urlDatabase, userId)
+    if(userIdDatabase[shorturl]){
+      urlDatabase[shorturl].longURL = newlongUrl
+      res.redirect("/urls");
+    }else{
+      res.send("You are not authorized to perform this function")
+    }
+  }else{
+    res.redirect("/login")
+  }
+  
 })
 
 app.get("/login", (req, res) => {
@@ -170,9 +215,21 @@ app.post("/logout", (req, res) => {
 // POST /urls/:shortURL/delete
 // post requests are used to CHANGE/DELETE/UPDATE/CREATE data 
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const urlToDelete = req.params.shortURL;
-  delete urlDatabase[urlToDelete];
-  res.redirect("/urls");
+  let userId = req.cookies["user_id"]
+  let shorturl = req.params.shortURL
+  if(userId){
+    const userIdDatabase = getUrlDatabaseFromUserId(urlDatabase, userId)
+    if(userIdDatabase[shorturl]){
+      delete urlDatabase[shorturl];
+      res.redirect("/urls");
+    }else{
+      res.send("You are not authorized to perform this function")
+    }
+  }else{
+    console.log("Delete fail!Redirect to login")
+    res.redirect("/login")
+  }
+  
 })
 
 app.listen(PORT, () => {
