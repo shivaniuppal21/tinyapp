@@ -79,7 +79,9 @@ app.get("/urls", (req, res) => {
 
  // will show a form to login
   app.get('/register', (req, res) => {
-    res.render("register")
+    const user_id = req.cookies["user_id"];
+    const templateVars = {  user: users[user_id]};
+    res.render("register",templateVars)
   });
 
   app.post("/register", (req, res) => {
