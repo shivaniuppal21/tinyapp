@@ -114,10 +114,6 @@ app.post('/register', (req, res) => {
       password: bcrypt.hashSync(incomingPassword, 10),
     };
     users[userid] = newUser;
-    // redirect them to home with cookie if everything was ok
-    // res.cookie("user_Id",userid)
-    // res.redirect('/')
-    // redirect them to login if everything was ok
     res.redirect('/urls');
   }
 });

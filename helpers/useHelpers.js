@@ -2,10 +2,10 @@ const bcrypt = require('bcrypt');
 
 // generates a random id 
 function generateRandomString() {
-  var result = '';
-  var char = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  var charlen = char.length;
-  for ( var i = 0; i < 6; i++ ) {
+  let result = '';
+  let char = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let charlen = char.length;
+  for ( let i = 0; i < 6; i++ ) {
      result += char.charAt(Math.floor(Math.random() * charlen));
   }
   return result;
