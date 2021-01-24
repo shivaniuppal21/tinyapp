@@ -75,7 +75,7 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.get('/u/:shortURL', (req, res) => {
-  res.redirect( urlDatabase[req.params.shortURL]);
+  res.redirect( urlDatabase[req.params.shortURL].longURL);
 });
 
 app.get('/urls/:shortURL', (req, res) => {
